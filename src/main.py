@@ -31,30 +31,20 @@ def analyze_gender(face):
         # Perform gender analysis
         analysis = DeepFace.analyze(face, actions=['gender'], enforce_detection=False)
         
-        # Access the gender result correctly
-        if isinstance(analysis, list):  # DeepFace may return a list
-            return analysis[0]['gender']
-        elif isinstance(analysis, dict):  # DeepFace may return a dictionary
-            return analysis['gender']
+        # Handle the case where DeepFace returns a list
+        if isinstance(analysis, list):
+            analysis = analysis[0]  # Take the first result if it's a list
+        
+        # Extract gender probabilities
+        gender_probs = analysis.get('gender', {})
+        if isinstance(gender_probs, dict):
+            # Get the gender with the highest probability
+            return max(gender_probs, key=gender_probs.get)
         else:
             return None
     except Exception as e:
         print(f"Error analyzing gender: {e}")
         return None
-
-
-def determinar_genero(probabilidades):
-    if probabilidades is None:
-        return "No Determinado"
-
-    if not isinstance(probabilidades, dict) or not probabilidades:
-        return "No Determinado"
-
-    try:
-        # Devuelve la clave con el valor más alto
-        return max(probabilidades, key=probabilidades.get)
-    except Exception:
-        return "No Determinado"
 
 def main():
     global exit_flag
@@ -75,14 +65,19 @@ def main():
     cv2.namedWindow("Webcam Stream", cv2.WINDOW_NORMAL)
     cv2.setWindowProperty("Webcam Stream", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
+    frame_count = 0  # Counter to limit the frequency of gender analysis
+
     while not exit_flag:
         # Capture frame from webcam
         frame = webcam.get_frame()
         if frame is None:
             break
 
+        # Reduce resolution for better performance
+        frame = cv2.resize(frame, (640, 480))
+
         # Run YOLO detection
-        results = model(frame, stream=True)  # Stream=True for real-time processing
+        results = model(frame, stream=True, conf=0.5, iou=0.4)  # Adjusted confidence and IOU thresholds
 
         # Variables to track the closest person
         max_area = 0
@@ -105,29 +100,31 @@ def main():
                         max_area = area
                         closest_box = (x1, y1, x2, y2, conf)
 
-                    # Extract the face region
-                    face = frame[y1:y2, x1:x2]
-
-                    # Analyze gender
-                    gender = analyze_gender(face)
-                    gender_det = determinar_genero(gender)
-                    print(f"GENDER:{gender_det}")
-
                     # Draw a red rectangle for all detected people
                     cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
                     label = f"Person {conf:.2f}"
-                    if gender:
-                        label += f", {gender_det}"
                     cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+        # Perform gender analysis only every 10 frames and for the closest person
+        if frame_count % 10 == 0 and closest_box:
+            x1, y1, x2, y2, conf = closest_box
+            face = frame[y1:y2, x1:x2]
+
+            # Analyze gender
+            gender = analyze_gender(face)
+            if gender:
+                cv2.putText(frame, f"Closest: {gender}", (x1, y1 - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
         # Highlight the closest person
         if closest_box:
             x1, y1, x2, y2, conf = closest_box
             cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 3)  # Green rectangle for the closest person
-            #cv2.putText(frame, f"Closest {conf:.2f}", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
         # Display the frame
         cv2.imshow("Webcam Stream", frame)
+
+        # Increment frame count
+        frame_count += 1
 
         # Check if the window is closed or 'q' is pressed
         key = cv2.waitKey(1) & 0xFF
