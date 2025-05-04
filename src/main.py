@@ -28,17 +28,9 @@ def analyze_gender(face):
     Analyze the gender of a detected face using DeepFace.
     """
     try:
-        # Perform gender analysis
         analysis = DeepFace.analyze(face, actions=['gender'], enforce_detection=False)
-        
-        # Handle the case where DeepFace returns a list
-        if isinstance(analysis, list):
-            analysis = analysis[0]  # Take the first result if it's a list
-        
-        # Extract gender probabilities
         gender_probs = analysis.get('gender', {})
         if isinstance(gender_probs, dict):
-            # Get the gender with the highest probability
             return max(gender_probs, key=gender_probs.get)
         else:
             return None
