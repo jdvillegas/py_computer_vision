@@ -50,6 +50,10 @@ def main():
         # Run YOLO detection
         results = model(frame, stream=True)  # Stream=True for real-time processing
 
+        # Variables to track the closest person
+        max_area = 0
+        closest_box = None
+
         # Draw bounding boxes for detected people
         for result in results:
             for box in result.boxes:
@@ -57,10 +61,25 @@ def main():
                 cls = int(box.cls[0])  # Class ID
                 conf = box.conf[0]  # Confidence score
 
-                # Only draw boxes for "person" class (class ID 0 in COCO dataset) with confidence >= 85%
-                if cls == 0 and conf >= 0.75:
-                    cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)  # Red rectangle
+                # Only consider "person" class (class ID 0 in COCO dataset) with confidence >= 85%
+                if cls == 0 and conf >= 0.85:
+                    # Calculate the area of the bounding box
+                    area = (x2 - x1) * (y2 - y1)
+
+                    # Check if this is the largest area so far
+                    if area > max_area:
+                        max_area = area
+                        closest_box = (x1, y1, x2, y2, conf)
+
+                    # Draw a red rectangle for all detected people
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
                     cv2.putText(frame, f"Person {conf:.2f}", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+        # Highlight the closest person
+        if closest_box:
+            x1, y1, x2, y2, conf = closest_box
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 3)  # Green rectangle for the closest person
+            cv2.putText(frame, f"Closest {conf:.2f}", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
         # Display the frame
         cv2.imshow("Webcam Stream", frame)
