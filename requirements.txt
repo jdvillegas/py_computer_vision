@@ -3,3 +3,4 @@ numpy
 ultralytics
 deepface
 tf-keras
+pillow

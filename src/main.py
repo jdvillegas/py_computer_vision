@@ -9,6 +9,8 @@ from modules.webcam_stream import WebcamStream
 import math
 import json
 import random
+from PIL import Image, ImageDraw, ImageFont
+import numpy as np
 
 # Flag to control the application loop
 exit_flag = False
@@ -27,6 +29,27 @@ def load_greetings():
     global greetings
     with open("d:\\python\\py_computer_vision\\src\\saludos.json", "r", encoding="utf-8") as file:
         greetings = json.load(file)
+
+def draw_text_with_pillow(frame, text, x, y, font_path="arial.ttf", font_size=16, color=(255, 255, 255)):
+    """
+    Draw text on an OpenCV frame using Pillow to handle special characters.
+    """
+    # Convert the OpenCV frame (BGR) to a Pillow image (RGB)
+    frame_pil = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+    draw = ImageDraw.Draw(frame_pil)
+
+    # Load the font
+    try:
+        font = ImageFont.truetype(font_path, font_size)
+    except IOError:
+        print("Font not found. Using default font.")
+        font = ImageFont.load_default()
+
+    # Draw the text
+    draw.text((x, y), text, font=font, fill=color)
+
+    # Convert the Pillow image back to an OpenCV frame (BGR)
+    return cv2.cvtColor(np.array(frame_pil), cv2.COLOR_RGB2BGR)
 
 def close_application():
     global exit_flag
@@ -200,13 +223,13 @@ def main():
                     # Draw a rectangle and label for the person
                     cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
                     label = f"ID: {person_id}, {greeting}"
-                    cv2.putText(frame, label, (x1, y1 - 10), font, font_scale, (0, 255, 0), thickness)
+                    frame = draw_text_with_pillow(frame, label, x1, y1 - 20, font_size=16, color=(0, 255, 0))
 
                     # Draw the wrapped greeting text below the bounding box
                     y_offset = y2 + 15
                     for line in wrapped_text:
-                        cv2.putText(frame, line, (x1, y_offset), font, font_scale, (255, 255, 255), thickness)
-                        y_offset += 15
+                        frame = draw_text_with_pillow(frame, line, x1, y_offset, font_size=16, color=(255, 255, 255))
+                        y_offset += 20
 
         # Display the frame
         cv2.imshow("Webcam Stream", frame)
