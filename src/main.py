@@ -188,7 +188,12 @@ def main():
         # Run YOLO detection
         results = model(frame, stream=True, conf=0.5, iou=0.4)  # Adjusted confidence and IOU thresholds
 
-        # Draw bounding boxes for detected people
+        # Variables to track the closest person
+        max_area = 0
+        closest_box = None
+        closest_person_id = None
+
+        # Identify the closest person
         for result in results:
             for box in result.boxes:
                 x1, y1, x2, y2 = map(int, box.xyxy[0])  # Bounding box coordinates
@@ -197,39 +202,49 @@ def main():
 
                 # Only consider "person" class (class ID 0 in COCO dataset) with confidence >= 85%
                 if cls == 0 and conf >= 0.85:
-                    # Assign a unique ID to the person
-                    person_id = assign_id_to_person((x1, y1, x2, y2))
+                    # Calculate the area of the bounding box
+                    area = (x2 - x1) * (y2 - y1)
 
-                    # Extract the face region
-                    face = frame[y1:y2, x1:x2]
+                    # Check if this is the largest area so far
+                    if area > max_area:
+                        max_area = area
+                        closest_box = (x1, y1, x2, y2)
+                        closest_person_id = assign_id_to_person((x1, y1, x2, y2))
 
-                    # Check if gender is already known
-                    if tracked_persons[person_id]['gender'] is None or tracked_persons[person_id]['gender'] == 'Unknown':
-                        gender = analyze_gender(face)
-                        tracked_persons[person_id]['gender'] = gender if gender else 'Unknown'
-                    else:
-                        gender = tracked_persons[person_id]['gender']
+        # If a closest person is identified, process their information
+        if closest_box and closest_person_id is not None:
+            x1, y1, x2, y2 = closest_box
 
-                    # Assign a greeting based on gender
-                    greeting = assign_greeting(person_id, gender)
+            # Extract the face region
+            face = frame[y1:y2, x1:x2]
 
-                    # Wrap the greeting text to fit inside the bounding box
-                    max_width = x2 - x1
-                    font = cv2.FONT_HERSHEY_SIMPLEX
-                    font_scale = 0.5
-                    thickness = 1
-                    wrapped_text = wrap_text(greeting, max_width, font, font_scale, thickness)
+            # Check if gender is already known
+            if tracked_persons[closest_person_id]['gender'] is None or tracked_persons[closest_person_id]['gender'] == 'Unknown':
+                gender = analyze_gender(face)
+                tracked_persons[closest_person_id]['gender'] = gender if gender else 'Unknown'
+            else:
+                gender = tracked_persons[closest_person_id]['gender']
 
-                    # Draw a rectangle and label for the person
-                    cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
-                    label = f"ID: {person_id}, {greeting}"
-                    frame = draw_text_with_pillow(frame, label, x1, y1 - 20, font_size=16, color=(0, 255, 0))
+            # Assign a greeting based on gender
+            greeting = assign_greeting(closest_person_id, gender)
 
-                    # Draw the wrapped greeting text below the bounding box
-                    y_offset = y2 + 15
-                    for line in wrapped_text:
-                        frame = draw_text_with_pillow(frame, line, x1, y_offset, font_size=16, color=(255, 255, 255))
-                        y_offset += 20
+            # Wrap the greeting text to fit inside the bounding box
+            max_width = x2 - x1
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            font_scale = 0.5
+            thickness = 1
+            wrapped_text = wrap_text(greeting, max_width, font, font_scale, thickness)
+
+            # Draw a rectangle and label for the closest person
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)  # Green rectangle for the closest person
+            label = f"ID: {closest_person_id}, {greeting}"
+            frame = draw_text_with_pillow(frame, label, x1, y1 - 20, font_size=16, color=(0, 255, 0))
+
+            # Draw the wrapped greeting text below the bounding box
+            y_offset = y2 + 15
+            for line in wrapped_text:
+                frame = draw_text_with_pillow(frame, line, x1, y_offset, font_size=16, color=(255, 255, 255))
+                y_offset += 20
 
         # Display the frame
         cv2.imshow("Webcam Stream", frame)
