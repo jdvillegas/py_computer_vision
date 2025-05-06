@@ -30,26 +30,53 @@ def load_greetings():
     with open("d:\\python\\py_computer_vision\\src\\saludos.json", "r", encoding="utf-8") as file:
         greetings = json.load(file)
 
-def draw_text_with_pillow(frame, text, x, y, font_path="arial.ttf", font_size=16, color=(255, 255, 255)):
+def draw_text_with_pillow(frame, text, x, y, font_path="arial.ttf", font_size=16, text_color=(255, 255, 255), bg_color=(0, 0, 0, 77)):
     """
-    Draw text on an OpenCV frame using Pillow to handle special characters.
-    """
-    # Convert the OpenCV frame (BGR) to a Pillow image (RGB)
-    frame_pil = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-    draw = ImageDraw.Draw(frame_pil)
+    Dibuja texto con fondo translúcido en un frame de OpenCV usando Pillow.
 
-    # Load the font
+    Parámetros:
+    - frame: imagen de OpenCV (BGR)
+    - text: texto a mostrar
+    - x, y: coordenadas del texto
+    - font_path: ruta a la fuente TTF
+    - font_size: tamaño del texto
+    - text_color: color del texto en RGB
+    - bg_color: color del fondo como RGBA (opacidad 0–255)
+
+    Devuelve:
+    - Frame modificado con el texto y fondo dibujados
+    """
+    # Convertir de BGR a RGB y a imagen Pillow
+    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    pil_img = Image.fromarray(frame_rgb).convert("RGBA")
+    overlay = Image.new("RGBA", pil_img.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+
+    # Fuente
     try:
         font = ImageFont.truetype(font_path, font_size)
     except IOError:
-        print("Font not found. Using default font.")
+        print(f"⚠️ Fuente no encontrada en '{font_path}', usando fuente por defecto.")
         font = ImageFont.load_default()
 
-    # Draw the text
-    draw.text((x, y), text, font=font, fill=color)
+    # Medidas del texto
+    text_bbox = draw.textbbox((0, 0), text, font=font)
+    text_width = text_bbox[2] - text_bbox[0]
+    text_height = text_bbox[3] - text_bbox[1]
+    padding = 6
+    box = [x - padding, y - padding, x + text_width + padding, y + text_height + padding]
 
-    # Convert the Pillow image back to an OpenCV frame (BGR)
-    return cv2.cvtColor(np.array(frame_pil), cv2.COLOR_RGB2BGR)
+    # Dibujar fondo translúcido
+    draw.rectangle(box, fill=bg_color)
+
+    # Dibujar texto
+    draw.text((x, y), text, font=font, fill=text_color)
+
+    # Combinar imagen original y overlay con transparencia
+    combined = Image.alpha_composite(pil_img, overlay)
+
+    # Convertir de nuevo a BGR para OpenCV
+    return cv2.cvtColor(np.array(combined.convert("RGB")), cv2.COLOR_RGB2BGR)
 
 def close_application():
     global exit_flag
@@ -238,12 +265,12 @@ def main():
             # Draw a rectangle and label for the closest person
             cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)  # Green rectangle for the closest person
             label = f"ID: {closest_person_id}, {greeting}"
-            frame = draw_text_with_pillow(frame, label, x1, y1 - 20, font_size=16, color=(0, 255, 0))
+            frame = draw_text_with_pillow(frame, label, x1, y1 - 20, font_size=16, text_color=(0, 255, 0))
 
             # Draw the wrapped greeting text below the bounding box
             y_offset = y2 + 15
             for line in wrapped_text:
-                frame = draw_text_with_pillow(frame, line, x1, y_offset, font_size=16, color=(255, 255, 255))
+                frame = draw_text_with_pillow(frame, line, x1, y_offset, font_size=16, text_color=(255, 255, 255))
                 y_offset += 20
 
         # Display the frame
