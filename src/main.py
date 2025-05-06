@@ -263,7 +263,7 @@ def main():
             wrapped_text = wrap_text(greeting, max_width, font, font_scale, thickness)
 
             # Draw a rectangle and label for the closest person
-            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)  # Green rectangle for the closest person
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 1)  # Green rectangle for the closest person
             label = f"ID: {closest_person_id}, {greeting}"
             frame = draw_text_with_pillow(frame, label, x1, y1 - 20, font_size=16, text_color=(0, 255, 0))
 
