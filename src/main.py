@@ -27,7 +27,7 @@ def load_greetings():
     Load greetings from saludos.json.
     """
     global greetings
-    with open("d:\\python\\py_computer_vision\\src\\saludos.json", "r", encoding="utf-8") as file:
+    with open(".\\saludos.json", "r", encoding="utf-8") as file:
         greetings = json.load(file)
 
 def draw_text_with_pillow(frame, text, x, y, font_path="arial.ttf", font_size=16, text_color=(255, 255, 255), bg_color=(0, 0, 0, 77)):
