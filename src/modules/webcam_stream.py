@@ -1,7 +1,7 @@
 import cv2
 
 class WebcamStream:
-    def __init__(self, camera_index=0):
+    def __init__(self, camera_index=1):
         self.camera_index = camera_index
         self.cap = None
 

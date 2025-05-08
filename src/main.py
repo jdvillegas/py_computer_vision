@@ -6,6 +6,7 @@ import tkinter as tk
 from ultralytics import YOLO
 from deepface import DeepFace
 from modules.webcam_stream import WebcamStream
+from modules.rtsp_stream import RTSPStream
 import math
 import json
 import random
@@ -14,6 +15,12 @@ import numpy as np
 
 # Flag to control the application loop
 exit_flag = False
+USE_RTSP  = True
+RTSP_URL = "rtsp://admin:Andi98765@192.168.0.199:554/cam/realmonitor?channel=22&subtype=0&unicast=true"
+#CAMERA_WIDTH = 640
+#CAMERA_HEIGTH = 480
+#CAMERA_FPS = 60
+
 
 # Dictionary to store tracked persons and their information
 tracked_persons = {}
@@ -192,20 +199,25 @@ def main():
     control_thread.daemon = True
     control_thread.start()
 
-    # Initialize webcam stream
-    webcam = WebcamStream()
-    webcam.start()
+    if USE_RTSP:
+        stream = RTSPStream(RTSP_URL)
+        stream.start()
+        print(f"Connected to RSTP stream {RTSP_URL}")
+    else :
+            # Initialize webcam stream
+        stream = WebcamStream()
+        stream.start()
 
     # Load YOLO model
     model = YOLO('yolov8n.pt')  # Use YOLOv8 nano model (you can replace with 'yolov8s.pt' or others)
 
     # Create a resizable window
     cv2.namedWindow("Webcam Stream", cv2.WINDOW_NORMAL)
-    cv2.setWindowProperty("Webcam Stream", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+    #cv2.setWindowProperty("Webcam Stream", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
     while not exit_flag:
         # Capture frame from webcam
-        frame = webcam.get_frame()
+        frame = stream.get_frame()
         if frame is None:
             break
 
@@ -284,7 +296,7 @@ def main():
             break
 
     # Release resources
-    webcam.stop()
+    stream.stop()
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
