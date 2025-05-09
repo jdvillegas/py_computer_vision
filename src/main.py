@@ -16,7 +16,8 @@ import numpy as np
 # Flag to control the application loop
 exit_flag = False
 USE_RTSP  = True
-RTSP_URL = "rtsp://admin:Andi98765@192.168.0.199:554/cam/realmonitor?channel=22&subtype=0&unicast=true"
+RTSP_URL = "rtsp://admin:Andi0783@192.169.10.10:554/cam/realmonitor?channel=1&subtype=1&unicast=true"
+#RTSP_URL = "rtsp://admin:Andi98765@192.168.0.199:554/cam/realmonitor?channel=22&subtype=1&unicast=true"
 #CAMERA_WIDTH = 640
 #CAMERA_HEIGTH = 480
 #CAMERA_FPS = 60
@@ -151,6 +152,8 @@ def analyze_gender(face):
     """
     Analyze the gender of a detected face using DeepFace.
     """
+    if True:
+        return None
     try:
         # Perform gender analysis
         analysis = DeepFace.analyze(face, actions=['gender'], enforce_detection=False)
